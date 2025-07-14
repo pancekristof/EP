@@ -1,44 +1,37 @@
 import React, { useState } from 'react';
 import { Users } from 'lucide-react';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { STATIONS } from '../utils/constants';
 
-const PatientRegistration = ({ stations }) => {
+const PatientRegistration = ({ patients, setPatients }) => {
   const [serialNumber, setSerialNumber] = useState('');
   const [selectedStation, setSelectedStation] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleRegister = async () => {
+  const handleRegister = () => {
     if (!serialNumber || !selectedStation) {
-      setMessage('Please enter serial number and select a station');
+      setMessage('Kérjük adja meg a sorszámot és válasszon állomást');
       return;
     }
 
-    try {
-      const patientsRef = collection(db, 'patients');
-      const q = query(patientsRef, where('serialNumber', '==', serialNumber));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        setMessage('Serial number already registered');
-        return;
-      }
-
-      await addDoc(patientsRef, {
-        serialNumber,
-        station: selectedStation,
-        timestamp: new Date().toISOString(),
-        status: 'waiting'
-      });
-
-      setMessage('Registration successful! Please wait for your number to be called.');
-      setSerialNumber('');
-      setSelectedStation('');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      setMessage('Error registering patient');
-      console.error(error);
+    const existingPatient = patients.find(p => p.serialNumber === serialNumber);
+    if (existingPatient) {
+      setMessage('Ez a sorszám már regisztrálva van');
+      return;
     }
+
+    const newPatient = {
+      serialNumber,
+      station: selectedStation,
+      timestamp: new Date().toLocaleTimeString(),
+      status: 'waiting'
+    };
+
+    setPatients(prev => [...prev, newPatient]);
+    setMessage('Sikeres regisztráció! Kérjük várja meg míg a sorszámát kihívják.');
+    setSerialNumber('');
+    setSelectedStation('');
+    
+    setTimeout(() => setMessage(''), 3000);
   };
 
   return (
@@ -49,28 +42,30 @@ const PatientRegistration = ({ stations }) => {
             <div className="bg-blue-500 rounded-full p-4 w-20 h-20 mx-auto mb-4">
               <Users className="w-12 h-12 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">Patient Registration</h1>
-            <p className="text-gray-600 mt-2">Enter your details to join the queue</p>
+            <h1 className="text-2xl font-bold text-gray-800">Beteg Regisztráció</h1>
+            <p className="text-gray-600 mt-2">Adja meg adatait a sorba álláshoz</p>
           </div>
+
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Serial Number
+                Sorszám
               </label>
               <input
                 type="text"
                 value={serialNumber}
                 onChange={(e) => setSerialNumber(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                placeholder="Enter your serial number"
+                placeholder="Adja meg a sorszámát"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Screening Station
+                Válasszon Szűrőállomást
               </label>
               <div className="grid gap-3">
-                {stations.map(station => {
+                {STATIONS.map(station => {
                   const Icon = station.icon;
                   return (
                     <button
@@ -93,15 +88,17 @@ const PatientRegistration = ({ stations }) => {
                 })}
               </div>
             </div>
+
             <button
               onClick={handleRegister}
               className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors duration-200"
             >
-              Register
+              Regisztráció
             </button>
+
             {message && (
               <div className={`p-4 rounded-lg ${
-                message.includes('successful') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                message.includes('Sikeres') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
               }`}>
                 {message}
               </div>

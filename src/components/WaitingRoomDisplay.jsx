@@ -1,25 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Monitor, Clock, AlertCircle } from 'lucide-react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { STATIONS } from '../utils/constants';
 
-const WaitingRoomDisplay = ({ stations }) => {
-  const [calledPatients, setCalledPatients] = useState([]);
-
-  useEffect(() => {
-    const q = query(collection(db, 'calledPatients'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const patientsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCalledPatients(patientsList);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
+const WaitingRoomDisplay = ({ calledPatients }) => {
   const getCalledPatientsForStation = (stationId) => {
     return calledPatients
       .filter(call => call.station === stationId)
-      .slice(-4)
+      .slice(-4) // Show last 4 called patients per station
       .reverse();
   };
 
@@ -31,33 +18,37 @@ const WaitingRoomDisplay = ({ stations }) => {
             <div className="bg-green-500 rounded-full p-3 w-16 h-16 mx-auto mb-3">
               <Monitor className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Now Calling</h1>
-            <p className="text-xl text-gray-600">Please check your station below</p>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">Most Hívjuk</h1>
+            <p className="text-xl text-gray-600">Kérjük ellenőrizze az állomását alább</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" style={{gridTemplateColumns: stations.length <= 3 ? `repeat(${stations.length}, 1fr)` : 'repeat(auto-fit, minmax(300px, 1fr))'}}>
-            {stations.map(station => {
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" style={{gridTemplateColumns: STATIONS.length <= 3 ? `repeat(${STATIONS.length}, 1fr)` : 'repeat(auto-fit, minmax(300px, 1fr))'}}>
+            {STATIONS.map(station => {
               const Icon = station.icon;
-              const stationPatients = getCalledPatientsForStation(station.id);
+              const calledPatients = getCalledPatientsForStation(station.id);
+              
               return (
                 <div key={station.id} className="bg-white border-4 border-gray-200 rounded-2xl overflow-hidden shadow-lg min-h-[400px] flex flex-col">
                   <div className={`${station.color} p-6 text-white text-center flex-shrink-0`}>
                     <Icon className="w-16 h-16 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold">{station.name}</h2>
                   </div>
+                  
                   <div className="flex-1 p-6">
-                    {stationPatients.length === 0 ? (
+                    {calledPatients.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center">
                           <Clock className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                          <p className="text-lg text-gray-500">No patients called yet</p>
+                          <p className="text-lg text-gray-500">Nincs behívott beteg</p>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-700 text-center mb-4">
-                          Called Patients
+                          Hívott Betegek
                         </h3>
-                        {stationPatients.map((call, index) => (
+                        
+                        {calledPatients.map((call, index) => (
                           <div key={`${call.serialNumber}-${call.calledAt}`} 
                                className={`p-4 rounded-xl border-2 transition-all duration-300 ${
                                  index === 0 
@@ -78,19 +69,21 @@ const WaitingRoomDisplay = ({ stations }) => {
                                   <AlertCircle className="w-5 h-5 text-red-500" />
                                 )}
                               </div>
+                              
                               {index === 0 ? (
                                 <div className="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-bold mb-2">
-                                  COME IN NOW
+                                  JÖJJÖN BE MOST
                                 </div>
                               ) : (
                                 <div className="bg-gray-400 text-white px-3 py-1 rounded-full text-xs font-medium mb-2">
-                                  COMPLETED
+                                  BEFEJEZVE
                                 </div>
                               )}
+                              
                               <p className={`text-sm ${
                                 index === 0 ? 'text-red-600 font-medium' : 'text-gray-600'
                               }`}>
-                                {new Date(call.calledAt).toLocaleTimeString()}
+                                {call.calledAt}
                               </p>
                             </div>
                           </div>
@@ -102,12 +95,13 @@ const WaitingRoomDisplay = ({ stations }) => {
               );
             })}
           </div>
+          
           <div className="mt-8 text-center bg-blue-50 rounded-xl p-4">
             <p className="text-lg text-blue-800 font-medium">
-              📍 Look for your serial number in your station column above
+              📍 Keresse meg a sorszámát a megfelelő állomás oszlopában
             </p>
             <p className="text-base text-blue-600 mt-1">
-              When your number appears with "COME IN NOW", proceed to that station
+              Amikor a száma megjelenik a "JÖJJÖN BE MOST" felirattal, menjen az adott állomásra
             </p>
           </div>
         </div>
