@@ -27,8 +27,19 @@ const AdminDashboard = ({ patients, calledPatients }) => {
 
   const recallPatient = async (patientId, calledId) => {
     try {
-      await firebaseService.updatePatientStatus(patientId, PATIENT_STATUS.WAITING);
-      await firebaseService.removeCalledPatient(calledId);
+      console.log('Recalling patient:', { patientId, calledId });
+      
+      // First remove from called patients list
+      if (calledId) {
+        await firebaseService.removeCalledPatient(calledId);
+      }
+      
+      // Then update patient status back to waiting (only if patient still exists)
+      if (patientId) {
+        await firebaseService.updatePatientStatus(patientId, PATIENT_STATUS.WAITING);
+      }
+      
+      console.log('Patient recalled successfully');
     } catch (error) {
       console.error('Error recalling patient:', error);
     }
@@ -156,8 +167,20 @@ const AdminDashboard = ({ patients, calledPatients }) => {
                           </div>
                           <div className="flex space-x-2">
                             <button
-                              onClick={() => recallPatient(originalPatient?.id, patient.id)}
+                              onClick={() => {
+                                console.log('Recall clicked:', { 
+                                  originalPatient: originalPatient?.id, 
+                                  calledPatient: patient.id,
+                                  serialNumber: patient.serialNumber 
+                                });
+                                if (originalPatient?.id && patient.id) {
+                                  recallPatient(originalPatient.id, patient.id);
+                                } else {
+                                  console.error('Missing IDs for recall');
+                                }
+                              }}
                               className="bg-orange-500 text-white px-3 py-1 rounded text-sm hover:bg-orange-600 transition-colors duration-200"
+                              disabled={!originalPatient}
                             >
                               Visszavon
                             </button>
